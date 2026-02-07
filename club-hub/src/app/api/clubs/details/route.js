@@ -5,12 +5,19 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const name = searchParams.get("name");
 
+  /*
   // Make sure this is not an empty query (if it is, return bad request error code)
   if (!name) {
     return NextResponse.json(
       { error: "Empty query" },
       { status: 400 }
     );
+  }
+  */
+  // if no parameter is passed, return the full list
+  if (!name) {
+    // Return the full list so the Browse page can display them
+    return NextResponse.json(clubs, { status: 200 });
   }
 
   // Find club by name from database (case-insensitive)
