@@ -1,0 +1,62 @@
+[
+  {
+    "slug": "athletic-and-recreational-sports-clubs",
+    "title": "Athletic and Recreational Sports Clubs",
+    "excerpt": "Want to hone your skills and show off your athletic prowess? Want to get in shape or learn a new sport? You’ve come to the right place!",
+    "href": "https://ssmu.ca/clubs/athletics-recreation-clubs/"
+  },
+  {
+    "slug": "charity-and-environment-clubs",
+    "title": "Charity and Environment Clubs",
+    "excerpt": "Help fundraise for an international charity or learn how you can make the McGill campus more sustainable!",
+    "href": "https://ssmu.ca/clubs/charity-environment-clubs/"
+  },
+  {
+    "slug": "community-outreach-and-volunteering-clubs",
+    "title": "Community Outreach and Volunteering Clubs",
+    "excerpt": "Get out of the McGill bubble and make meaningful contributions to our community with one of our volunteer programs!",
+    "href": "https://ssmu.ca/clubs/community-outreach-and-volunteering-clubs/"
+  },
+  {
+    "slug": "fine-art-dance-and-performance-clubs",
+    "title": "Fine Art, Dance, and Performance Clubs",
+    "excerpt": "Learn to draw, show off your vocals, or steal the show with your dance moves!",
+    "href": "https://ssmu.ca/clubs/performing-finearts-clubs/"
+  },
+  {
+    "slug": "health-and-wellness-clubs",
+    "title": "Health and Wellness Clubs",
+    "excerpt": "Interested in learning more about global health? Supporting student wellness on campus? Join a Health and Wellness club!",
+    "href": "https://ssmu.ca/clubs/health-wellness-clubs/"
+  },
+  {
+    "slug": "language-and-publications",
+    "title": "Language and Publications",
+    "excerpt": "Interested in writing and showing off your editorial skills or learning a new language? Join our clubs.",
+    "href": "https://ssmu.ca/clubs/language-publications/"
+  },
+  {
+    "slug": "leisure-activity-and-hobby-clubs",
+    "title": "Leisure Activity and Hobby Clubs",
+    "excerpt": "Learn to tango, play bridge, or share your love of board game? This is the place to be! Pick up a new hobby or skill in a fun and relaxed environment.",
+    "href": "https://ssmu.ca/clubs/hobby-leisure-clubs/"
+  },
+  {
+    "slug": "networking-and-leadership-development-clubs",
+    "title": "Networking and Leadership Development Clubs",
+    "excerpt": "Build your skills and your resume by developing your leadership ability and networking along on the way!",
+    "href": "https://ssmu.ca/clubs/networking-and-leadership-development-clubs/"
+  },
+  {
+    "slug": "political-and-social-activism-clubs",
+    "title": "Political and Social Activism Clubs",
+    "excerpt": "Advocate for the causes you believe in and fight for change with a Political and Social Activism Club!",
+    "href": "https://ssmu.ca/clubs/political-socialactivism-clubs/"
+  },
+  {
+    "slug": "religion-and-culture-clubs",
+    "title": "Religion and Culture Clubs",
+    "excerpt": "Expand your horizons by learning about a new culture or get a taste of home with one of our many Religion and Culture Clubs!",
+    "href": "https://ssmu.ca/clubs/religion-culture-clubs/"
+  }
+]

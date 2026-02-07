@@ -1,131 +1,154 @@
 import * as cheerio from "cheerio";
 import fs from "fs/promises";
 
-const BASE = "https://ssmu.ca";
-const START = "https://ssmu.ca/student-life/clubs-services-isg/";
+const START_URL = "https://ssmu.ca/student-life/clubs-services-isg/";
 
-// polite delay so you don’t hammer their server
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function normalize(s) {
+  return (s || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 async function fetchHtml(url) {
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "ClubHubHackathon/1.0 (educational project)"
-    }
+      // be polite; also helps avoid some anti-bot behavior
+      "User-Agent": "ClubHubHackathon/1.0 (educational)",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
   });
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${url}`);
   return await res.text();
 }
 
-async function getCategoryLinks() {
-  const html = await fetchHtml(START);
+/**
+ * MAIN PAGE PARSER
+ * Matches exactly:
+ * div.gallery.gallery--gated.cta-gallery.clubs > div.cta
+ * Extracts: title, excerpt, href
+ */
+async function scrapeCategories() {
+  const html = await fetchHtml(START_URL);
   const $ = cheerio.load(html);
 
-  // Find all links that contain "/clubs/" from the main page
-  // (these correspond to the "View all" category pages)
-  const links = new Set();
-  $("a[href*='/clubs/']").each((_, a) => {
-    const href = $(a).attr("href");
-    if (href && href.startsWith("https://ssmu.ca/clubs/")) links.add(href);
-  });
+  const categories = [];
 
-  return [...links];
-}
+  $("div.gallery.gallery--gated.cta-gallery.clubs div.cta").each((_, cta) => {
+    const title = normalize($(cta).find("h3.cta-title").first().text());
+    const excerpt = normalize($(cta).find("p.walker-excerpt").first().text());
+    const href = $(cta).find("a[href]").first().attr("href");
 
-function normalizeText(s) {
-  return (s || "")
-    .replace(/\s+/g, " ")
-    .replace(/\u00a0/g, " ")
-    .trim();
-}
-
-async function scrapeCategory(url) {
-  const html = await fetchHtml(url);
-  const $ = cheerio.load(html);
-
-  const category = normalizeText($("h1").first().text()) || url;
-
-  // On category pages, club entries are introduced with "#### Club Name"
-  // which becomes <h4> in HTML.
-  const clubs = [];
-  const h4s = $("h4");
-
-  h4s.each((i, el) => {
-    const name = normalizeText($(el).text());
-    if (!name) return;
-
-    // Collect description + links until the next h4
-    let descParts = [];
-    let links = [];
-
-    let node = $(el).next();
-    while (node.length && node[0].tagName !== "h4") {
-      // collect paragraphs
-      if (node[0].tagName === "p") {
-        const t = normalizeText(node.text());
-        if (t) descParts.push(t);
-      }
-
-      // collect anchors (instagram/website/etc.)
-      node.find("a").each((_, a) => {
-        const href = $(a).attr("href");
-        const label = normalizeText($(a).text());
-        if (href) links.push({ label: label || "link", href });
+    if (title && href) {
+      categories.push({
+        title,
+        excerpt,
+        href,
       });
-
-      node = node.next();
     }
-
-    const description = normalizeText(descParts.join(" "));
-
-    // simple tag seed from category (you can enrich later with Gemini)
-    const tags = category
-      .toLowerCase()
-      .replace(/clubs?/g, "")
-      .split(/[^a-z]+/)
-      .filter(Boolean);
-
-    clubs.push({
-      name,
-      category,
-      description,
-      links,
-      tags,
-      sourceUrl: url,
-      scrapedAt: new Date().toISOString(),
-    });
   });
 
-  return clubs;
+  return categories;
+}
+
+/**
+ * CATEGORY PAGE PARSER
+ * Matches exactly:
+ * article.clubs-category
+ * Extracts: category title/desc + each club's name/desc/social/img
+ */
+async function scrapeCategoryPage(category) {
+  const html = await fetchHtml(category.href);
+  const $ = cheerio.load(html);
+
+  const categoryTitle = normalize($("section h1").first().text()) || category.title;
+  const categoryDescription = normalize($("section span p").first().text()) || category.excerpt;
+
+  const clubs = [];
+
+  $("article.clubs-category").each((_, article) => {
+    const $article = $(article);
+
+    const name = normalize(
+      $article.find(".clubs-category-description h4").first().text()
+    );
+
+    const clubId = $article.find(".clubs-category-description h4").first().attr("id") || null;
+
+    // Description: all text inside the first ".clubs-category-description > div" (the block under h4)
+    const descBlock = $article.find(".clubs-category-description > div").first();
+
+    // Keep it readable: join paragraph texts (ignore empty)
+    const paragraphs = [];
+    descBlock.find("p").each((_, p) => {
+      const t = normalize($(p).text());
+      if (t) paragraphs.push(t);
+    });
+
+    // Fallback if no <p> found: use overall text
+    const description = paragraphs.length
+      ? normalize(paragraphs.join(" "))
+      : normalize(descBlock.text());
+
+    // Social links: exactly ul.clubs-category-social > li > a
+    const social = [];
+    $article.find("ul.clubs-category-social li a").each((_, a) => {
+      const href = $(a).attr("href");
+      const label = normalize($(a).text());
+      if (href) social.push({ label: label || "link", href });
+    });
+
+    // Image: inside div.clubs-category-img img
+    const imageUrl = $article.find(".clubs-category-img img").first().attr("src") || null;
+
+    if (name) {
+      clubs.push({
+        name,
+        clubId,
+        description,
+        social,
+        imageUrl,
+        sourceUrl: category.href,
+      });
+    }
+  });
+
+  return {
+    category: {
+      title: categoryTitle,
+      excerpt: categoryDescription,
+      href: category.href,
+    },
+    clubs,
+  };
 }
 
 async function main() {
-  console.log("Getting category links...");
-  const categoryLinks = await getCategoryLinks();
-  console.log("Found category pages:", categoryLinks.length);
+  console.log("Scraping categories from:", START_URL);
+  const categories = await scrapeCategories();
+  console.log(`Found ${categories.length} categories`);
 
-  let all = [];
-  for (const url of categoryLinks) {
-    console.log("Scraping:", url);
-    const clubs = await scrapeCategory(url);
-    console.log(`  -> ${clubs.length} clubs`);
-    all = all.concat(clubs);
-    await sleep(400); // be polite
-  }
+  const result = {
+    scrapedAt: new Date().toISOString(),
+    source: START_URL,
+    categories: [],
+  };
 
-  // Deduplicate by name + category
-  const seen = new Set();
-  const deduped = [];
-  for (const c of all) {
-    const key = `${c.category}::${c.name}`.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(c);
+  for (const cat of categories) {
+    console.log("Scraping category:", cat.title, "-", cat.href);
+    const categoryData = await scrapeCategoryPage(cat);
+    console.log(`  -> ${categoryData.clubs.length} clubs`);
+    result.categories.push(categoryData);
+
+    await sleep(400); // polite delay
   }
 
   await fs.mkdir("data", { recursive: true });
-  await fs.writeFile("data/ssmu_clubs.json", JSON.stringify(deduped, null, 2), "utf8");
-  console.log("Wrote data/ssmu_clubs.json with", deduped.length, "clubs");
+  await fs.writeFile("data/ssmu_clubs_by_category.json", JSON.stringify(result, null, 2), "utf8");
+
+  console.log("Saved: data/ssmu_clubs_by_category.json");
 }
 
 main().catch((e) => {
