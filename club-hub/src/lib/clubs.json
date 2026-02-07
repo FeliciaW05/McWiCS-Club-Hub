@@ -1,0 +1,205 @@
+[
+  {
+    "name": "McGill AI Society",
+    "description": "Workshops, projects, and social events around AI.",
+    "tags": ["ai", "tech", "projects", "career", "workshops"],
+    "vibe": ["beginner-friendly", "social"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Outdoors Club",
+    "description": "Hikes, camping trips, and meeting new people outdoors.",
+    "tags": ["outdoors", "social", "friendship", "hiking", "wellness"],
+    "vibe": ["social", "casual"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Badminton Club",
+    "description": "Weekly badminton games open to all skill levels.",
+    "tags": ["sports", "fitness", "social"],
+    "vibe": ["beginner-friendly", "active"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Coding Society",
+    "description": "Learn to code, collaborate on projects, and prep for interviews.",
+    "tags": ["coding", "tech", "career", "projects"],
+    "vibe": ["collaborative", "career-focused"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Photography Club",
+    "description": "Photo walks, editing workshops, and creative showcases.",
+    "tags": ["photography", "creative", "art"],
+    "vibe": ["creative", "casual"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Board Games Club",
+    "description": "Weekly board game nights and social hangouts.",
+    "tags": ["games", "social", "friendship"],
+    "vibe": ["chill", "social"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Women in Tech",
+    "description": "Empowering women through tech talks, mentorship, and networking.",
+    "tags": ["tech", "career", "mentorship", "community"],
+    "vibe": ["supportive", "professional"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Debate Society",
+    "description": "Debates, competitions, and public speaking practice.",
+    "tags": ["debate", "public-speaking", "politics"],
+    "vibe": ["intellectual", "competitive"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Entrepreneurship Society",
+    "description": "Startup talks, pitch nights, and founder networking.",
+    "tags": ["entrepreneurship", "business", "startups"],
+    "vibe": ["ambitious", "career-focused"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Dance Collective",
+    "description": "Open dance classes and performances for all styles.",
+    "tags": ["dance", "creative", "fitness"],
+    "vibe": ["energetic", "inclusive"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Music Jam Club",
+    "description": "Casual jam sessions and music collaboration.",
+    "tags": ["music", "creative", "collaboration"],
+    "vibe": ["casual", "creative"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Mental Wellness Club",
+    "description": "Peer support, workshops, and wellness activities.",
+    "tags": ["wellness", "mental-health", "support"],
+    "vibe": ["supportive", "calm"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Volunteering Network",
+    "description": "Community service and volunteering opportunities.",
+    "tags": ["volunteering", "community", "social-impact"],
+    "vibe": ["meaningful", "community-oriented"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Film Society",
+    "description": "Movie screenings, discussions, and film projects.",
+    "tags": ["film", "media", "creative"],
+    "vibe": ["chill", "creative"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Language Exchange",
+    "description": "Practice languages and meet people from different cultures.",
+    "tags": ["languages", "culture", "social"],
+    "vibe": ["friendly", "international"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Yoga Club",
+    "description": "Weekly yoga sessions to relax and recharge.",
+    "tags": ["yoga", "fitness", "wellness"],
+    "vibe": ["relaxed", "calm"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Finance Society",
+    "description": "Finance workshops, case competitions, and networking.",
+    "tags": ["finance", "career", "business"],
+    "vibe": ["professional", "career-focused"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Sustainability Club",
+    "description": "Projects and events focused on environmental action.",
+    "tags": ["sustainability", "environment", "activism"],
+    "vibe": ["purpose-driven", "collaborative"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Gaming & Esports",
+    "description": "Competitive and casual gaming events.",
+    "tags": ["gaming", "esports", "social"],
+    "vibe": ["competitive", "fun"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Cooking Club",
+    "description": "Group cooking sessions and recipe sharing.",
+    "tags": ["food", "cooking", "social"],
+    "vibe": ["casual", "social"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Running Club",
+    "description": "Group runs for all paces around campus.",
+    "tags": ["running", "fitness", "wellness"],
+    "vibe": ["supportive", "active"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Investment Club",
+    "description": "Learn investing through talks and portfolio simulations.",
+    "tags": ["investing", "finance", "learning"],
+    "vibe": ["educational", "career-focused"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Creative Writing Club",
+    "description": "Writing prompts, sharing sessions, and workshops.",
+    "tags": ["writing", "creative", "literature"],
+    "vibe": ["reflective", "creative"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Robotics Club",
+    "description": "Build robots and compete in engineering challenges.",
+    "tags": ["robotics", "engineering", "projects"],
+    "vibe": ["hands-on", "collaborative"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Chess Club",
+    "description": "Casual and competitive chess games.",
+    "tags": ["chess", "strategy", "games"],
+    "vibe": ["intellectual", "calm"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Comedy Club",
+    "description": "Stand-up, improv, and comedy writing sessions.",
+    "tags": ["comedy", "performance", "creative"],
+    "vibe": ["fun", "outgoing"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill International Students Society",
+    "description": "Events and support for international students.",
+    "tags": ["international", "community", "social"],
+    "vibe": ["welcoming", "inclusive"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Hackathon Club",
+    "description": "Hackathons, workshops, and team-building events.",
+    "tags": ["hackathons", "tech", "collaboration"],
+    "vibe": ["fast-paced", "collaborative"],
+    "link": "https://example.com"
+  },
+  {
+    "name": "McGill Foodies Club",
+    "description": "Exploring restaurants, cooking nights, and free food events.",
+    "tags": ["food", "social", "free-food"],
+    "vibe": ["fun", "casual"],
+    "link": "https://example.com"
+  }
+]
