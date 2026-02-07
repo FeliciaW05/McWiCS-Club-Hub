@@ -87,7 +87,7 @@ export default function Browse() {
         {/* SECTION 3: SEARCH BY TIME */}
         <section className="space-y-6">
           <h2 className="text-3xl font-bold italic flex items-center gap-3">
-            Search by Time <span className="text-4xl">🕒</span>
+            Search by Time
           </h2>
           
           <div className="relative max-w-md group">
