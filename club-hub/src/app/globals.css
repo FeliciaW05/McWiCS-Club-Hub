@@ -72,9 +72,9 @@
   @apply bg-club-blue text-white font-bold px-6 rounded-lg hover:bg-club-dark transition-colors cursor-pointer;
 }
 
-/* Navbar - UPDATED: Fixed to top */
+/* Navbar */
 .nav-container {
-  @apply fixed top-0 left-0 w-full z-50 flex justify-between items-center py-4 px-8 border-b-2 border-club-dark bg-club-white shadow-md;
+  @apply  fixed top-0 left-0 w-full z-50 flex justify-between items-center py-4 px-8 border-b-2 border-club-dark bg-club-white/50 backdrop-blur-md;
 }
 .nav-links {
   @apply hidden md:flex gap-8 text-lg font-bold tracking-tight text-club-dark;
@@ -122,6 +122,110 @@
 
 .club-card-title {
   @apply font-bold text-xl text-center rotate-[-5deg] text-club-dark;
+}
+
+/* =========================================
+   1. SPLASH SCREEN & LAYOUT
+   ========================================= */
+
+/* Fixes the layout to perfectly center the logo and search bar */
+.splash-container {
+  @apply relative flex flex-col items-center justify-center h-screen w-full overflow-hidden;
+}
+
+/* Background Image styling */
+.splash-bg-image {
+  @apply absolute inset-0 w-full h-full object-cover z-0;
+}
+
+/* The dark overlay so text pops */
+.splash-overlay {
+  @apply absolute inset-0 bg-black/20 z-0;
+}
+
+/* The container for Logo + Search Bar */
+.hero-content-wrapper {
+  @apply z-10 flex flex-col items-center gap-8 w-full px-4;
+}
+
+/* The Scroll Down arrow animation */
+.scroll-indicator {
+  @apply absolute bottom-10 text-white flex flex-col items-center opacity-90 z-10 animate-bounce;
+}
+
+
+/* =========================================
+   2. SEARCH BAR COMPONENT
+   ========================================= */
+
+.hero-search-container {
+  @apply w-full max-w-3xl relative z-10;
+}
+
+.hero-search-box {
+  @apply bg-white rounded-full shadow-2xl p-2 flex items-center transform transition-transform duration-300;
+}
+
+.hero-search-box:hover {
+  @apply scale-[1.01];
+}
+
+.hero-search-input {
+  @apply flex-grow bg-transparent outline-none px-4 text-lg text-club-dark placeholder-gray-400 h-12;
+}
+
+.hero-search-btn {
+  @apply bg-club-blue text-white rounded-full px-8 py-3 font-bold transition-colors;
+}
+
+.hero-search-btn:hover {
+  @apply bg-blue-700;
+}
+
+
+/* =========================================
+   3. ANIMATIONS (Posters)
+   ========================================= */
+
+/* Define the scrolling keyframes */
+@keyframes scrollUp {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes scrollDown {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
+}
+
+/* Apply animations to columns */
+.animate-scroll-up {
+  animation: scrollUp 40s linear infinite;
+}
+
+.animate-scroll-down {
+  animation: scrollDown 40s linear infinite;
+}
+
+/* Pause animation on hover for better UX */
+.poster-container:hover .animate-scroll-up,
+.poster-container:hover .animate-scroll-down {
+  animation-play-state: paused;
+}
+
+
+/* =========================================
+   4. MARGIN FIXES (The Gap Issue)
+   ========================================= */
+
+.info-heading {
+  @apply text-5xl font-bold text-club-blue mt-0; /* mt-0 is crucial for the gap fix */
+}
+
+.main-content-wrapper {
+  @apply min-h-screen bg-club-white relative z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.1)];
+  /* Negative margin pulls the white section slightly over the splash to cover any sub-pixel gaps */
+  margin-top: -1px; 
 }
 
 /* Global Resets */
