@@ -1,131 +1,198 @@
 import * as cheerio from "cheerio";
 import fs from "fs/promises";
 
-const BASE = "https://ssmu.ca";
-const START = "https://ssmu.ca/student-life/clubs-services-isg/";
+const START_URL = "https://ssmu.ca/student-life/clubs-services-isg/";
 
-// polite delay so you don’t hammer their server
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function normalize(s) {
+  return (s || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanDescription(s) {
+  let d = normalize(s);
+
+  // Remove trailing “platform words” that often remain after scraping
+  // Example: "... create a memorable summer for everyone. Instagram"
+  d = d.replace(
+    /\b(Instagram|YouTube|LinkedIn|Facebook|Twitter|X|Website|Email)\b\s*$/gi,
+    ""
+  );
+
+  return normalize(d);
+}
 
 async function fetchHtml(url) {
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "ClubHubHackathon/1.0 (educational project)"
-    }
+      "User-Agent": "ClubHubHackathon/1.0 (educational)",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
   });
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${url}`);
   return await res.text();
 }
 
-async function getCategoryLinks() {
-  const html = await fetchHtml(START);
+/**
+ * MAIN PAGE PARSER
+ * Matches exactly:
+ * div.gallery.gallery--gated.cta-gallery.clubs > div.cta
+ * Extracts: title, excerpt, href
+ */
+async function scrapeCategories() {
+  const html = await fetchHtml(START_URL);
   const $ = cheerio.load(html);
 
-  // Find all links that contain "/clubs/" from the main page
-  // (these correspond to the "View all" category pages)
-  const links = new Set();
-  $("a[href*='/clubs/']").each((_, a) => {
-    const href = $(a).attr("href");
-    if (href && href.startsWith("https://ssmu.ca/clubs/")) links.add(href);
+  const categories = [];
+
+  $("div.gallery.gallery--gated.cta-gallery.clubs div.cta").each((_, cta) => {
+    const title = normalize($(cta).find("h3.cta-title").first().text());
+    const excerpt = normalize($(cta).find("p.walker-excerpt").first().text());
+    const href = $(cta).find("a[href]").first().attr("href");
+
+    if (title && href) {
+      categories.push({
+        title,
+        excerpt,
+        href,
+      });
+    }
   });
 
-  return [...links];
+  return categories;
 }
 
-function normalizeText(s) {
-  return (s || "")
-    .replace(/\s+/g, " ")
-    .replace(/\u00a0/g, " ")
-    .trim();
-}
-
-async function scrapeCategory(url) {
-  const html = await fetchHtml(url);
+/**
+ * CATEGORY PAGE PARSER
+ * Matches exactly:
+ * article.clubs-category
+ * Extracts: category title/desc + each club's name/desc/social/img
+ */
+async function scrapeCategoryPage(category) {
+  const html = await fetchHtml(category.href);
   const $ = cheerio.load(html);
 
-  const category = normalizeText($("h1").first().text()) || url;
+  const categoryTitle = normalize($("section h1").first().text()) || category.title;
+  const categoryDescription =
+    normalize($("section span p").first().text()) || category.excerpt;
 
-  // On category pages, club entries are introduced with "#### Club Name"
-  // which becomes <h4> in HTML.
   const clubs = [];
-  const h4s = $("h4");
 
-  h4s.each((i, el) => {
-    const name = normalizeText($(el).text());
-    if (!name) return;
+  $("article.clubs-category").each((_, article) => {
+    const $article = $(article);
 
-    // Collect description + links until the next h4
-    let descParts = [];
-    let links = [];
+    const $h4 = $article.find(".clubs-category-description h4").first();
+    const name = normalize($h4.text());
+    const clubId = $h4.attr("id") || null;
 
-    let node = $(el).next();
-    while (node.length && node[0].tagName !== "h4") {
-      // collect paragraphs
-      if (node[0].tagName === "p") {
-        const t = normalizeText(node.text());
-        if (t) descParts.push(t);
-      }
+    // Description container: the block directly under h4
+    const descBlock = $article.find(".clubs-category-description > div").first();
 
-      // collect anchors (instagram/website/etc.)
-      node.find("a").each((_, a) => {
-        const href = $(a).attr("href");
-        const label = normalizeText($(a).text());
-        if (href) links.push({ label: label || "link", href });
+    // 1) Grab links INSIDE descBlock (Instagram often lives here)
+    const descLinks = [];
+    descBlock.find("a[href]").each((_, a) => {
+      const href = $(a).attr("href")?.trim();
+      const label = normalize($(a).text()) || "link";
+      if (href) descLinks.push({ label, href });
+    });
+
+    // 2) Social links from ul.clubs-category-social
+    const socialLinks = [];
+    $article.find("ul.clubs-category-social li a[href]").each((_, a) => {
+      const href = $(a).attr("href")?.trim();
+      const label = normalize($(a).text()) || "link";
+      if (href) socialLinks.push({ label, href });
+    });
+
+    // 3) Build description text but REMOVE anchor text so we don’t get trailing “Instagram”
+    // Clone to avoid modifying original DOM
+    const descClone = descBlock.clone();
+    descClone.find("a").remove(); // remove links so their text doesn't pollute description
+
+    // Prefer paragraphs, fallback to full text
+    const paragraphs = [];
+    descClone.find("p").each((_, p) => {
+      const t = normalize($(p).text());
+      if (t) paragraphs.push(t);
+    });
+
+    const rawDescription = paragraphs.length
+      ? paragraphs.join(" ")
+      : normalize(descClone.text());
+
+    const description = cleanDescription(rawDescription);
+
+    // 4) Merge + dedupe links by href (so instagram isn’t lost)
+    const combined = [...descLinks, ...socialLinks];
+    const seen = new Set();
+    const social = [];
+    for (const item of combined) {
+      if (!item?.href) continue;
+      const key = item.href.trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      social.push({
+        label: item.label || "link",
+        href: item.href,
       });
-
-      node = node.next();
     }
 
-    const description = normalizeText(descParts.join(" "));
+    // Image: inside div.clubs-category-img img
+    const imageUrl = $article.find(".clubs-category-img img").first().attr("src") || null;
 
-    // simple tag seed from category (you can enrich later with Gemini)
-    const tags = category
-      .toLowerCase()
-      .replace(/clubs?/g, "")
-      .split(/[^a-z]+/)
-      .filter(Boolean);
-
-    clubs.push({
-      name,
-      category,
-      description,
-      links,
-      tags,
-      sourceUrl: url,
-      scrapedAt: new Date().toISOString(),
-    });
+    if (name) {
+      clubs.push({
+        name,
+        clubId,
+        description,
+        social,
+        imageUrl,
+        sourceUrl: category.href,
+      });
+    }
   });
 
-  return clubs;
+  return {
+    category: {
+      title: categoryTitle,
+      excerpt: categoryDescription,
+      href: category.href,
+    },
+    clubs,
+  };
 }
 
 async function main() {
-  console.log("Getting category links...");
-  const categoryLinks = await getCategoryLinks();
-  console.log("Found category pages:", categoryLinks.length);
+  console.log("Scraping categories from:", START_URL);
+  const categories = await scrapeCategories();
+  console.log(`Found ${categories.length} categories`);
 
-  let all = [];
-  for (const url of categoryLinks) {
-    console.log("Scraping:", url);
-    const clubs = await scrapeCategory(url);
-    console.log(`  -> ${clubs.length} clubs`);
-    all = all.concat(clubs);
-    await sleep(400); // be polite
-  }
+  const result = {
+    scrapedAt: new Date().toISOString(),
+    source: START_URL,
+    categories: [],
+  };
 
-  // Deduplicate by name + category
-  const seen = new Set();
-  const deduped = [];
-  for (const c of all) {
-    const key = `${c.category}::${c.name}`.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(c);
+  for (const cat of categories) {
+    console.log("Scraping category:", cat.title, "-", cat.href);
+    const categoryData = await scrapeCategoryPage(cat);
+    console.log(`  -> ${categoryData.clubs.length} clubs`);
+    result.categories.push(categoryData);
+
+    await sleep(400); // polite delay
   }
 
   await fs.mkdir("data", { recursive: true });
-  await fs.writeFile("data/ssmu_clubs.json", JSON.stringify(deduped, null, 2), "utf8");
-  console.log("Wrote data/ssmu_clubs.json with", deduped.length, "clubs");
+  await fs.writeFile(
+    "data/ssmu_clubs_by_category.json",
+    JSON.stringify(result, null, 2),
+    "utf8"
+  );
+
+  console.log("Saved: data/ssmu_clubs_by_category.json");
 }
 
 main().catch((e) => {
