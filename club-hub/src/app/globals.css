@@ -38,6 +38,17 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/*club cards animation
+club cards will auto scroll down*/
+@keyframes scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.animate-scroll-up {
+  animation: scroll-up 20s linear infinite;
+}
+
 /*
 @theme inline {
   --color-background: var(--background);

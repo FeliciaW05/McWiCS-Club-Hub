@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 // A reusable card component for the posters
 const ClubCard = ({ title, color }) => (
@@ -15,7 +16,7 @@ const Navbar = () => (
     <div className="flex gap-8 text-lg font-bold tracking-tight text-club-dark">
       <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">HOME</a>
       <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">ABOUT</a>
-      <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">Browse Clubs</a>
+      <Link href="/browse" className="hover:text-club-blue hover:underline decoration-wavy">Browse Clubs</Link>
       <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">Calendar</a>
     </div>
     <button className="text-lg font-bold border-b-2 border-club-dark hover:text-club-orange hover:border-club-orange transition-colors">
@@ -23,6 +24,13 @@ const Navbar = () => (
     </button>
   </nav>
 );
+
+
+<a href="/browse">
+  <button className="mt-4 px-8 py-3 border-2 border-club-dark text-2xl font-bold bg-white hover:bg-club-orange hover:text-white transition-all shadow-[4px_4px_0px_0px_#4D2C8E] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
+    Browse Clubs!
+  </button>
+</a>
 
 export default function Home() {
   // We duplicate the list of clubs to create a seamless infinite loop
@@ -55,9 +63,11 @@ export default function Home() {
               <p className="border-b-2 border-club-dark pb-2">Never miss a campus event again.</p>
             </div>
 
-            <button className="mt-4 px-8 py-3 border-2 border-club-dark text-2xl font-bold bg-white hover:bg-club-orange hover:text-white transition-all shadow-[4px_4px_0px_0px_#4D2C8E] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
-              Browse Clubs!
-            </button>
+            <Link href="/browse">
+              <button className="mt-4 px-8 py-3 border-2 border-club-dark text-2xl font-bold bg-white hover:bg-club-orange hover:text-white transition-all shadow-[4px_4px_0px_0px_#4D2C8E] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
+                Browse Clubs!
+              </button>
+            </Link>
           </div>
         </div>
 
