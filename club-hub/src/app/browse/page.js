@@ -4,8 +4,8 @@ import React from 'react';
 const Navbar = () => (
   <nav className="flex justify-between items-center py-6 px-8 border-b-2 border-club-dark bg-club-white sticky top-0 z-50">
     <div className="flex gap-8 text-lg font-bold tracking-tight text-club-dark">
-      <a href="/" className="hover:text-club-blue hover:underline decoration-wavy">HOME</a>
-      <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">ABOUT</a>
+      <a href="/" className="hover:text-club-blue hover:underline decoration-wavy">Home</a>
+      <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">About</a>
       <a href="/browse" className="text-club-orange underline decoration-wavy">Browse Clubs</a>
       <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">Calendar</a>
     </div>

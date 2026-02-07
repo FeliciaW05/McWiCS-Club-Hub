@@ -22,7 +22,7 @@ const Navbar = () => (
       <Link href="#" className="nav-link-item">Calendar</Link>
     </div>
     <button className="nav-signup-btn">
-      Sign up your Club
+      sign up your club
     </button>
   </nav>
 );
@@ -32,17 +32,18 @@ const HeroSearch = () => (
   <div className="hero-search-container">
     <div className="hero-search-box">
       {/* Search Icon */}
-      <div className="pl-4 text-gray-400">
+      {/*<div className="pl-4 text-gray-400">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
-      </div>
+      </div>*/}
 
       {/* Input */}
-      <input 
-        type="text" 
-        placeholder="Search for 'Chess', 'Hiking', or 'Robotics'..." 
-        className="hero-search-input"
+      {/* Input - Changed to Textarea for multi-line support */}
+      <textarea 
+        placeholder="Tell us a bit about yourself, your interests, and we'll find the perfect club!" 
+        rows="2"
+        className="hero-search-input resize-none py-3 leading-tight flex items-center" 
       />
 
       {/* Button */}
@@ -86,7 +87,6 @@ export default function Home() {
 
         {/* Center Content: Logo + Search Bar */}
         <div className="z-10 flex flex-col items-center gap-8 w-full">
-            {/* LOGO ADDED HERE */}
             <img
               src="CLUB.png"
               alt="ClubHub Logo"

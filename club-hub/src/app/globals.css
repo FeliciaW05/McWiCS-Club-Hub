@@ -162,16 +162,18 @@
   @apply w-full max-w-3xl relative z-10;
 }
 
+.hero-search-input {
+  @apply flex-grow bg-transparent outline-none px-4 text-lg text-club-dark placeholder-gray-400 h-auto resize-none;
+  
+  margin-top: 4px; 
+}
+
 .hero-search-box {
-  @apply bg-white rounded-full shadow-2xl p-2 flex items-center transform transition-transform duration-300;
+  @apply bg-white rounded-full shadow-2xl p-4 flex items-center transform transition-transform duration-300;
 }
 
 .hero-search-box:hover {
   @apply scale-[1.01];
-}
-
-.hero-search-input {
-  @apply flex-grow bg-transparent outline-none px-4 text-lg text-club-dark placeholder-gray-400 h-12;
 }
 
 .hero-search-btn {
