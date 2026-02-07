@@ -12,10 +12,22 @@ function normalize(s) {
     .trim();
 }
 
+function cleanDescription(s) {
+  let d = normalize(s);
+
+  // Remove trailing “platform words” that often remain after scraping
+  // Example: "... create a memorable summer for everyone. Instagram"
+  d = d.replace(
+    /\b(Instagram|YouTube|LinkedIn|Facebook|Twitter|X|Website|Email)\b\s*$/gi,
+    ""
+  );
+
+  return normalize(d);
+}
+
 async function fetchHtml(url) {
   const res = await fetch(url, {
     headers: {
-      // be polite; also helps avoid some anti-bot behavior
       "User-Agent": "ClubHubHackathon/1.0 (educational)",
       "Accept-Language": "en-US,en;q=0.9",
     },
@@ -64,41 +76,69 @@ async function scrapeCategoryPage(category) {
   const $ = cheerio.load(html);
 
   const categoryTitle = normalize($("section h1").first().text()) || category.title;
-  const categoryDescription = normalize($("section span p").first().text()) || category.excerpt;
+  const categoryDescription =
+    normalize($("section span p").first().text()) || category.excerpt;
 
   const clubs = [];
 
   $("article.clubs-category").each((_, article) => {
     const $article = $(article);
 
-    const name = normalize(
-      $article.find(".clubs-category-description h4").first().text()
-    );
+    const $h4 = $article.find(".clubs-category-description h4").first();
+    const name = normalize($h4.text());
+    const clubId = $h4.attr("id") || null;
 
-    const clubId = $article.find(".clubs-category-description h4").first().attr("id") || null;
-
-    // Description: all text inside the first ".clubs-category-description > div" (the block under h4)
+    // Description container: the block directly under h4
     const descBlock = $article.find(".clubs-category-description > div").first();
 
-    // Keep it readable: join paragraph texts (ignore empty)
+    // 1) Grab links INSIDE descBlock (Instagram often lives here)
+    const descLinks = [];
+    descBlock.find("a[href]").each((_, a) => {
+      const href = $(a).attr("href")?.trim();
+      const label = normalize($(a).text()) || "link";
+      if (href) descLinks.push({ label, href });
+    });
+
+    // 2) Social links from ul.clubs-category-social
+    const socialLinks = [];
+    $article.find("ul.clubs-category-social li a[href]").each((_, a) => {
+      const href = $(a).attr("href")?.trim();
+      const label = normalize($(a).text()) || "link";
+      if (href) socialLinks.push({ label, href });
+    });
+
+    // 3) Build description text but REMOVE anchor text so we don’t get trailing “Instagram”
+    // Clone to avoid modifying original DOM
+    const descClone = descBlock.clone();
+    descClone.find("a").remove(); // remove links so their text doesn't pollute description
+
+    // Prefer paragraphs, fallback to full text
     const paragraphs = [];
-    descBlock.find("p").each((_, p) => {
+    descClone.find("p").each((_, p) => {
       const t = normalize($(p).text());
       if (t) paragraphs.push(t);
     });
 
-    // Fallback if no <p> found: use overall text
-    const description = paragraphs.length
-      ? normalize(paragraphs.join(" "))
-      : normalize(descBlock.text());
+    const rawDescription = paragraphs.length
+      ? paragraphs.join(" ")
+      : normalize(descClone.text());
 
-    // Social links: exactly ul.clubs-category-social > li > a
+    const description = cleanDescription(rawDescription);
+
+    // 4) Merge + dedupe links by href (so instagram isn’t lost)
+    const combined = [...descLinks, ...socialLinks];
+    const seen = new Set();
     const social = [];
-    $article.find("ul.clubs-category-social li a").each((_, a) => {
-      const href = $(a).attr("href");
-      const label = normalize($(a).text());
-      if (href) social.push({ label: label || "link", href });
-    });
+    for (const item of combined) {
+      if (!item?.href) continue;
+      const key = item.href.trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      social.push({
+        label: item.label || "link",
+        href: item.href,
+      });
+    }
 
     // Image: inside div.clubs-category-img img
     const imageUrl = $article.find(".clubs-category-img img").first().attr("src") || null;
@@ -146,7 +186,11 @@ async function main() {
   }
 
   await fs.mkdir("data", { recursive: true });
-  await fs.writeFile("data/ssmu_clubs_by_category.json", JSON.stringify(result, null, 2), "utf8");
+  await fs.writeFile(
+    "data/ssmu_clubs_by_category.json",
+    JSON.stringify(result, null, 2),
+    "utf8"
+  );
 
   console.log("Saved: data/ssmu_clubs_by_category.json");
 }
