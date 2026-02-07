@@ -10,7 +10,7 @@ const Navbar = () => (
       <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">Calendar</a>
     </div>
     <button className="text-lg font-bold border-b-2 border-club-dark hover:text-club-orange hover:border-club-orange transition-colors">
-      Sign up your Club
+      Join the HUB
     </button>
   </nav>
 );
@@ -53,7 +53,7 @@ export default function Browse() {
         {/* SECTION 1: TRENDING */}
         <section className="space-y-6">
           <div className="flex justify-between items-end border-b-2 border-club-dark/20 pb-2">
-            <h1 className="text-4xl font-bold tracking-tight">Trending in ClubHub</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Trending in the CL•HUB</h1>
             {/* The Arrows from your sketch */}
             <div className="flex gap-2 text-3xl font-black text-club-blue animate-pulse">
                 <span>→</span><span>→</span>
