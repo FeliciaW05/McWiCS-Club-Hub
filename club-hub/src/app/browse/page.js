@@ -1,13 +1,16 @@
 import React from 'react';
+import Link from 'next/link';
+// 1. IMPORT DATA DIRECTLY (Same source your route.js uses)
+import clubs from "@/lib/clubs.json";
 
-// Reusing the Navbar for consistency
+// --- SUB-COMPONENTS ---
 const Navbar = () => (
   <nav className="flex justify-between items-center py-6 px-8 border-b-2 border-club-dark bg-club-white sticky top-0 z-50">
     <div className="flex gap-8 text-lg font-bold tracking-tight text-club-dark">
-      <a href="/" className="hover:text-club-blue hover:underline decoration-wavy">Home</a>
-      <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">About</a>
-      <a href="/browse" className="text-club-orange underline decoration-wavy">Browse Clubs</a>
-      <a href="#" className="hover:text-club-blue hover:underline decoration-wavy">Calendar</a>
+      <Link href="/" className="hover:text-club-blue hover:underline decoration-wavy">Home</Link>
+      <Link href="#" className="hover:text-club-blue hover:underline decoration-wavy">About</Link>
+      <Link href="/browse" className="text-club-orange underline decoration-wavy">Browse Clubs</Link>
+      <Link href="#" className="hover:text-club-blue hover:underline decoration-wavy">Calendar</Link>
     </div>
     <button className="text-lg font-bold border-b-2 border-club-dark hover:text-club-orange hover:border-club-orange transition-colors">
       Sign up your Club
@@ -15,17 +18,22 @@ const Navbar = () => (
   </nav>
 );
 
-const ClubCard = ({ title, color }) => (
-  <div className={`min-w-[220px] h-[300px] ${color} border-2 border-club-dark rounded-lg shadow-[4px_4px_0px_0px_#4D2C8E] flex flex-col items-center justify-between p-4 hover:translate-y-[-5px] transition-transform cursor-pointer`}>
-    <div className="w-full h-32 bg-white/50 rounded border border-club-dark/10 flex items-center justify-center text-4xl">
-      🎈
-    </div>
-    <div className="text-center space-y-2">
+const ClubCard = ({ title, color, id }) => (
+  <Link href={`/club/${id}`} className="block">
+    <div className={`min-w-[220px] h-[300px] ${color} border-2 border-club-dark rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all cursor-pointer overflow-hidden flex flex-col justify-between p-4`}>
+      
+      <div className="w-full h-32 bg-white/50 rounded border border-club-dark/10 flex items-center justify-center text-4xl mb-4">
+        🎈
+      </div>
+      
+      <div className="text-center space-y-2">
         <h3 className="font-bold text-xl leading-tight text-club-dark">{title}</h3>
         <p className="text-sm italic opacity-70">Click to see more</p>
+      </div>
+
+      <div className="w-full h-2 bg-club-dark/10 rounded-full"></div>
     </div>
-    <div className="w-full h-2 bg-club-dark/10 rounded-full"></div>
-  </div>
+  </Link>
 );
 
 const TagButton = ({ label, icon }) => (
@@ -34,15 +42,15 @@ const TagButton = ({ label, icon }) => (
   </button>
 );
 
+// --- MAIN PAGE COMPONENT ---
+
 export default function Browse() {
-  const trendingClubs = [
-    { title: "McGill AI", color: "bg-white" },
-    { title: "Debate Union", color: "bg-club-light" },
-    { title: "HackMcGill", color: "bg-club-cream" },
-    { title: "Origami Club", color: "bg-white" },
-    { title: "Chem Eng", color: "bg-club-light" },
-    { title: "Cinema Soc", color: "bg-club-cream" },
-  ];
+  // 2. ASSIGN DATA TO VARIABLE (No async/await needed!)
+  // If you later add a real database, you can switch this line to a database call.
+  const clubsData = clubs; 
+  
+  // Define colors to cycle through for the card styling
+  const colors = ["bg-white", "bg-club-light", "bg-club-cream"];
 
   return (
     <div className="min-h-screen bg-club-white text-club-dark font-sans pb-20">
@@ -54,16 +62,23 @@ export default function Browse() {
         <section className="space-y-6">
           <div className="flex justify-between items-end border-b-2 border-club-dark/20 pb-2">
             <h1 className="text-4xl font-bold tracking-tight">Trending in ClubHub</h1>
-            {/* The Arrows from your sketch */}
             <div className="flex gap-2 text-3xl font-black text-club-blue animate-pulse">
                 <span>→</span><span>→</span>
             </div>
           </div>
           
-          {/* Horizontal Scroll Container */}
           <div className="flex gap-6 overflow-x-auto pb-8 pt-2 scrollbar-hide snap-x">
-            {trendingClubs.map((club, i) => (
-              <ClubCard key={i} {...club} />
+            {/* 3. MAP THE DATA */}
+            {clubsData.map((club, i) => (
+              <ClubCard 
+                key={i} 
+                // Assuming your JSON has a 'name' field
+                title={club.name} 
+                // Assuming your JSON has an 'id' or we use name as ID
+                id={club.name} 
+                // Assign a color cyclically
+                color={colors[i % colors.length]} 
+              />
             ))}
           </div>
         </section>
@@ -89,7 +104,6 @@ export default function Browse() {
           <h2 className="text-3xl font-bold italic flex items-center gap-3">
             Search by Time
           </h2>
-          
           <div className="relative max-w-md group">
             <input 
               type="text" 
