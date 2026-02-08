@@ -9,12 +9,17 @@ const Navbar = () => (
   <nav className="nav-container">
     <div className="text-2xl font-black text-club-dark md:hidden">CLUBHUB</div>
     <div className="nav-links">
-      <Link href="/" className="nav-link-item">Home</Link>
-      <Link href="#" className="nav-link-item">About</Link>
-      <Link href="/browse" className="nav-link-item">Browse Clubs</Link>
-      <Link href="#" className="nav-link-item">Calendar</Link>
+      <Link href="/" className="nav-link-item">
+        Home
+      </Link>
+      <Link href="/browse" className="nav-link-item">
+        Browse Clubs
+      </Link>
     </div>
-    <button className="nav-signup-btn">sign up your club</button>
+    <Link href="/signup">
+  <button className="nav-signup-btn">sign up your club</button>
+</Link>
+
   </nav>
 );
 

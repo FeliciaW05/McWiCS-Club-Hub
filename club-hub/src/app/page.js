@@ -21,14 +21,8 @@ const Navbar = () => (
       <Link href="/" className="nav-link-item">
         Home
       </Link>
-      <Link href="#" className="nav-link-item">
-        About
-      </Link>
       <Link href="/browse" className="nav-link-item">
         Browse Clubs
-      </Link>
-      <Link href="#" className="nav-link-item">
-        Calendar
       </Link>
     </div>
     <Link href="/signup">
