@@ -418,7 +418,13 @@ export default function Home() {
           {recommendations.length > 0 && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               {recommendations.map((r, idx) => (
-                <RecommendationCard key={`${r.slug || r.name}-${idx}`} r={r} />
+                <Link
+                  key={`${r.slug || r.name}-${idx}`} 
+                  href={`/club/${r.slug || r.name}`} 
+                  className="block hover:opacity-95 transition-opacity"
+                >
+                  <RecommendationCard r={r} />
+                </Link>
               ))}
             </div>
           )}
@@ -427,6 +433,8 @@ export default function Home() {
     </div>
   );
 }
+
+
 /*
 import Image from "next/image";
 
