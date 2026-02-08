@@ -16,7 +16,9 @@ const Navbar = () => (
       <Link href="/browse" className="nav-link-item">Browse Clubs</Link>
       <Link href="#" className="nav-link-item">Calendar</Link>
     </div>
-    <button className="nav-signup-btn">sign up your club</button>
+    <button className="nav-signup-btn">
+      sign up your club
+    </button>
   </nav>
 );
 

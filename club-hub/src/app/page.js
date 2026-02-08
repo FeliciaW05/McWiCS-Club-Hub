@@ -31,7 +31,10 @@ const Navbar = () => (
         Calendar
       </Link>
     </div>
-    <button className="nav-signup-btn">sign up your club</button>
+    <Link href="/signup">
+  <button className="nav-signup-btn">sign up your club</button>
+</Link>
+
   </nav>
 );
 
