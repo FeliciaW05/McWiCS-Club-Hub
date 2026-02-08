@@ -1,14 +1,6 @@
 // src/app/api/chat/route.js
 import clientPromise from "@/lib/mongodb";
 
-/**
- * Complete updated /api/chat
- * - NEVER crashes on Gemini quota / JSON parse
- * - Always returns recommendations (no empty) by pulling a broader candidate set
- * - Expands fallback tags with simple synonyms (friendship -> community, etc.)
- * - Scores by tag overlap + vibe overlap + text fallback (name/description)
- */
-
 // ====== APPROVED LISTS ======
 const APPROVED_TAGS = [
   "ai","coding","engineering","robotics","data","finance","business","entrepreneurship","startups","career",
@@ -25,7 +17,7 @@ const APPROVED_VIBES = [
   "beginner-friendly","competitive","casual","chill","hands-on","collaborative","social-heavy","career-focused"
 ];
 
-// ====== FALLBACK keyword mapping ======
+// ====== KEYWORD → TAGS (fallback extraction) ======
 const KEYWORDS = [
   // outdoors/sports
   ["hiking", ["hiking","outdoors"]],
@@ -33,7 +25,9 @@ const KEYWORDS = [
   ["outdoor", ["outdoors"]],
   ["cycling", ["sports","fitness","outdoors"]],
   ["bike", ["sports","fitness","outdoors"]],
+  ["biking", ["sports","fitness","outdoors"]],
   ["run", ["running","sports","fitness"]],
+  ["jog", ["running","sports","fitness"]],
   ["running", ["running","sports","fitness"]],
   ["badminton", ["badminton","sports","fitness"]],
   ["yoga", ["yoga","wellness","mindfulness"]],
@@ -42,10 +36,14 @@ const KEYWORDS = [
   ["dragon boat", ["sports","fitness","community"]],
   ["dragonboat", ["sports","fitness","community"]],
   ["paddl", ["sports","fitness","outdoors"]],
+  ["ski", ["sports","outdoors","fitness"]],
+  ["snow", ["sports","outdoors"]],
+  ["winter", ["sports","outdoors"]],
 
   // tech
   ["ai", ["ai","tech"]],
   ["machine learning", ["ai","data","tech"]],
+  ["ml", ["ai","data","tech"]],
   ["coding", ["coding","tech"]],
   ["program", ["coding","tech"]],
   ["robot", ["robotics","engineering"]],
@@ -77,6 +75,7 @@ const KEYWORDS = [
   // fun
   ["game", ["gaming","social"]],
   ["board", ["board-games","social"]],
+  ["chess", ["board-games","social"]],
   ["comedy", ["comedy","social"]],
   ["food", ["food","social"]],
   ["free food", ["free-food","food","social"]],
@@ -89,11 +88,117 @@ const KEYWORDS = [
   ["write", ["writing","creative"]],
 ];
 
+// ====== QUERY SYNONYMS (search-mode expansion) ======
+const QUERY_SYNONYMS = {
+  // winter sports
+  "ski": ["skiing", "snow", "snow sports", "winter sports", "winter"],
+  "skiing": ["ski", "snow", "winter sports"],
+  "snowboard": ["snowboarding", "snow", "winter sports"],
+  "snowboarding": ["snowboard", "snow", "winter sports"],
+
+  // paddling / dragon boat
+  "dragon boat": ["dragonboat", "paddling", "paddle", "boat"],
+  "dragonboat": ["dragon boat", "paddling", "paddle", "boat"],
+  "paddle": ["paddling", "dragon boat", "canoe", "kayak"],
+
+  // cycling
+  "bike": ["biking", "cycling", "cyclist"],
+  "biking": ["bike", "cycling"],
+  "cycling": ["bike", "biking"],
+
+  // running
+  "run": ["running", "jogging"],
+  "running": ["run", "jogging"],
+  "jogging": ["run", "running"],
+};
+
+// ==================== HELPERS ====================
+
+function toStringArray(x) {
+  if (Array.isArray(x)) return x.filter(Boolean).map(String);
+  if (typeof x === "string") return x.split(",").map(s => s.trim()).filter(Boolean);
+  return [];
+}
+
 function normalize(s) {
   return (s || "").toString().toLowerCase().replace(/\s+/g, " ").trim();
 }
 
-function fallbackUserProfile(message = "") {
+function tokenize(s) {
+  return normalize(s)
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function escapeRegex(s) {
+  return (s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function safeJsonParse(s) {
+  try { return JSON.parse(s); } catch { return null; }
+}
+
+// ==================== FUZZY (NO DEPS) ====================
+
+function levenshtein(a, b) {
+  a = normalize(a);
+  b = normalize(b);
+  if (!a) return b.length;
+  if (!b) return a.length;
+
+  const m = a.length;
+  const n = b.length;
+
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+
+    for (let j = 1; j <= n; j++) {
+      const temp = dp[j];
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[j] = Math.min(
+        dp[j] + 1,        // delete
+        dp[j - 1] + 1,    // insert
+        prev + cost       // replace
+      );
+      prev = temp;
+    }
+  }
+  return dp[n];
+}
+
+function similarity(a, b) {
+  a = normalize(a);
+  b = normalize(b);
+  if (!a || !b) return 0;
+  const dist = levenshtein(a, b);
+  const denom = Math.max(a.length, b.length);
+  return denom ? 1 - dist / denom : 0;
+}
+
+// ==================== SEARCH MODE DETECTION ====================
+
+function isLikelyDirectSearch(message) {
+  const t = normalize(message);
+  const tokens = tokenize(t);
+
+  // super short queries are often “find me X”
+  if (tokens.length <= 4) return true;
+
+  // common recommendation phrasing
+  const recHints = ["i like", "interested", "looking for", "meet people", "friends", "beginner", "career", "resume"];
+  if (recHints.some(h => t.includes(h))) return false;
+
+  return false;
+}
+
+// ==================== USER PROFILE EXTRACTION ====================
+
+function fallbackUserProfile(message = "", opts = { allowDefault: true }) {
   const text = normalize(message);
   const tags = new Set();
   const vibe = new Set();
@@ -102,7 +207,7 @@ function fallbackUserProfile(message = "") {
     if (text.includes(kw)) add.forEach(t => tags.add(t));
   }
 
-  // vibes (heuristics)
+  // vibe heuristics
   if (text.includes("beginner") || text.includes("new") || text.includes("no experience")) vibe.add("beginner-friendly");
   if (text.includes("chill") || text.includes("relax")) vibe.add("chill");
   if (text.includes("competitive") || text.includes("tournament")) vibe.add("competitive");
@@ -110,12 +215,14 @@ function fallbackUserProfile(message = "") {
   if (text.includes("friends") || text.includes("social") || text.includes("meet people")) vibe.add("social-heavy");
   if (text.includes("build") || text.includes("hands-on") || text.includes("project")) vibe.add("hands-on");
 
-  // minimum defaults
-  if (tags.size === 0) {
-    tags.add("community");
-    tags.add("social");
+  // IMPORTANT: don’t default tags for direct search queries like “ski”
+  if (opts.allowDefault) {
+    if (tags.size === 0) {
+      tags.add("community");
+      tags.add("social");
+    }
+    if (vibe.size === 0) vibe.add("casual");
   }
-  if (vibe.size === 0) vibe.add("casual");
 
   return {
     tags: [...tags].filter(t => APPROVED_TAGS.includes(t)).slice(0, 6),
@@ -126,7 +233,7 @@ function fallbackUserProfile(message = "") {
 function expandTags(tags) {
   const set = new Set((tags || []).filter(t => APPROVED_TAGS.includes(t)));
 
-  // synonyms / smoothing so you don’t get empty results
+  // smoothing
   if (set.has("friendship")) set.add("community");
   if (set.has("community")) set.add("social");
   if (set.has("hiking")) set.add("outdoors");
@@ -135,15 +242,66 @@ function expandTags(tags) {
   if (set.has("self-care")) set.add("wellness");
   if (set.has("mindfulness")) set.add("wellness");
 
-  return [...set].slice(0, 8);
+  return [...set].slice(0, 10);
 }
+async function fetchDefaultDiverseClubs(db, limit = 6) {
+  // Goal: pick clubs that cover different tags, not just “popular”
+  // Heuristic:
+  // - only consider clubs that have tags
+  // - unwind tags, then take one club per tag bucket
+  // - sort within each tag by quality signals (has instagram/image/updatedAt)
+  // - then sample across tags
 
-function safeJsonParse(s) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
+  const pipeline = [
+    { $match: { tags: { $exists: true, $ne: [] } } },
+    { $unwind: "$tags" },
+
+    // quality signals
+    {
+      $addFields: {
+        _hasInstagram: { $cond: [{ $ifNull: ["$links.instagram", false] }, 1, 0] },
+        _hasImage: { $cond: [{ $ifNull: ["$imageUrl", false] }, 1, 0] },
+        _updated: { $ifNull: ["$updatedAt", new Date(0)] },
+      }
+    },
+
+    // choose best club per tag
+    {
+      $sort: {
+        tags: 1,
+        _hasInstagram: -1,
+        _hasImage: -1,
+        _updated: -1,
+        name: 1,
+      }
+    },
+    {
+      $group: {
+        _id: "$tags",
+        club: { $first: "$$ROOT" }
+      }
+    },
+
+    // shuffle tag buckets to diversify
+    { $sample: { size: Math.max(limit * 2, 12) } },
+
+    // pick the clubs out
+    { $replaceRoot: { newRoot: "$club" } },
+
+    // cleanup
+    { $project: { _id: 0, _hasInstagram: 0, _hasImage: 0, _updated: 0 } },
+
+    { $limit: limit }
+  ];
+
+  const results = await db.collection("clubs").aggregate(pipeline).toArray();
+
+  // If DB has weird data and we still got nothing, just return whatever exists (safe fallback)
+  if (!results.length) {
+    return db.collection("clubs").find({}, { projection: { _id: 0 } }).limit(limit).toArray();
   }
+
+  return results;
 }
 
 async function tryGemini(message) {
@@ -164,10 +322,10 @@ ${APPROVED_TAGS.join(", ")}
 APPROVED VIBES:
 ${APPROVED_VIBES.join(", ")}
 
-OUTPUT FORMAT (JSON ONLY):
+OUTPUT (JSON ONLY):
 { "tags": ["tag1","tag2"], "vibe": ["vibe1"] }
 
-USER MESSAGE:
+MESSAGE:
 ${message}
 `;
 
@@ -188,61 +346,224 @@ ${message}
 
   return { tags, vibe };
 }
-function tokenize(s) {
-  return normalize(s)
-    .replace(/[^a-z0-9\s-]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
+
+// ==================== QUERY EXPANSION ====================
+
+function expandSearchQuery(raw) {
+  const q = normalize(raw);
+  const tokens = tokenize(q);
+
+  const expanded = new Set([q, ...tokens]);
+
+  // phrase-level synonyms
+  for (const [k, vals] of Object.entries(QUERY_SYNONYMS)) {
+    if (q.includes(k)) vals.forEach(v => expanded.add(normalize(v)));
+  }
+
+  // token-level synonyms
+  for (const t of tokens) {
+    const vals = QUERY_SYNONYMS[t];
+    if (vals) vals.forEach(v => expanded.add(normalize(v)));
+  }
+
+  return [...expanded].filter(Boolean).slice(0, 12);
+}
+function getJoinUrl(c) {
+  return (
+    c?.links?.website ||
+    c?.sourceUrl ||
+    c?.category?.href ||
+    null
+  );
 }
 
-function allTokensInText(tokens, text) {
-  return tokens.every(t => text.includes(t));
+function isWeakMatch(topRanked, mode) {
+  if (!topRanked?.length) return true;
+
+  // If everything is basically noise, treat as weak
+  const best = topRanked[0]?.score ?? 0;
+
+  // You can tune these thresholds
+  if (mode === "search") return best < 18;      // name/text searches should score higher
+  return best < 10;                             // rec mode can be softer
 }
 
-function nameMatchBoost(userMsg, clubName) {
-  const q = normalize(userMsg);
-  const name = normalize(clubName);
+async function fetchTrendingClubs(db, limit = 6) {
+  // If you want "pinned" clubs always at top, add them here:
+  const PINNED_SLUGS = [
+    // "dragon-boat-z",
+    // "cycling-mcgill",
+  ];
 
-  if (!q || q.length < 2 || !name) return 0;
+  const pinned = PINNED_SLUGS.length
+    ? await db.collection("clubs")
+        .find({ slug: { $in: PINNED_SLUGS } }, { projection: { _id: 0 } })
+        .toArray()
+    : [];
 
-  // exact or near-exact
-  if (name === q) return 40;
-  if (name.includes(q)) return 30;
+  // “Trending” heuristic:
+  // - has instagram (+), has image (+), many tags (+), recently updated (+)
+  const rest = await db.collection("clubs").aggregate([
+    { $match: PINNED_SLUGS.length ? { slug: { $nin: PINNED_SLUGS } } : {} },
+    {
+      $addFields: {
+        _hasInstagram: { $cond: [{ $ifNull: ["$links.instagram", false] }, 1, 0] },
+        _hasImage: { $cond: [{ $ifNull: ["$imageUrl", false] }, 1, 0] },
+        _tagCount: { $size: { $ifNull: ["$tags", []] } },
+        _updated: { $ifNull: ["$updatedAt", new Date(0)] },
+      }
+    },
+    {
+      $sort: {
+        _hasInstagram: -1,
+        _hasImage: -1,
+        _tagCount: -1,
+        _updated: -1,
+        name: 1,
+      }
+    },
+    { $limit: limit + 20 }, // grab some extra just in case
+    { $project: { _id: 0, _hasInstagram: 0, _hasImage: 0, _tagCount: 0, _updated: 0 } }
+  ]).toArray();
 
-  // token-based match (e.g., "dragon boat" in "Dragon Boat Z")
-  const qTokens = tokenize(q);
-  if (qTokens.length >= 2 && allTokensInText(qTokens, name)) return 24;
+  const merged = [...pinned, ...rest];
 
-  // partial token overlap
-  const nameTokens = new Set(tokenize(name));
+  // final unique by slug/name
+  const map = new Map();
+  for (const c of merged) {
+    const key = c.slug || c.clubId || c.name;
+    if (!map.has(key)) map.set(key, c);
+    if (map.size >= limit) break;
+  }
+  return [...map.values()].slice(0, limit);
+}
+// ==================== DB CANDIDATE FETCH ====================
+
+async function fetchSearchCandidates(db, userMessage, limit = 120) {
+  const terms = expandSearchQuery(userMessage);
+
+  // 1) try text search if index exists
+  let textHits = [];
+  try {
+    const textQuery = terms.join(" ");
+    textHits = await db.collection("clubs")
+      .find({ $text: { $search: textQuery } }, { projection: { _id: 0 } })
+      .limit(limit)
+      .toArray();
+  } catch {
+    textHits = [];
+  }
+
+  // 2) regex fallback (name/slug/description)
+  const regexAny = new RegExp(terms.map(escapeRegex).join("|"), "i");
+
+  const baseTokens = tokenize(userMessage);
+  const looseRegex = baseTokens.length
+    ? new RegExp(baseTokens.map(t => escapeRegex(t)).join(".*"), "i")
+    : regexAny;
+
+  let regexHits = [];
+  if (textHits.length < 20) {
+    regexHits = await db.collection("clubs")
+      .find(
+        { $or: [{ name: regexAny }, { slug: regexAny }, { description: looseRegex }] },
+        { projection: { _id: 0 } }
+      )
+      .limit(limit)
+      .toArray();
+  }
+
+  // merge unique
+  const map = new Map();
+  for (const c of [...textHits, ...regexHits]) {
+    const key = c.slug || c.clubId || c.name;
+    if (!map.has(key)) map.set(key, c);
+  }
+
+  return [...map.values()];
+}
+
+async function fetchRecommendationCandidates(db, limit = 1500) {
+  // broader pull, then score locally
+  return db.collection("clubs")
+    .find({}, { projection: { _id: 0 } })
+    .limit(limit)
+    .toArray();
+}
+
+// ==================== SCORING ====================
+
+function nameAndTextBoost(userMsg, club) {
+  const qRaw = normalize(userMsg);
+  if (!qRaw || qRaw.length < 2) return 0;
+
+  const clubName = normalize(club?.name);
+  const clubSlug = normalize(club?.slug);
+  const clubText = normalize(`${club?.name || ""} ${club?.description || ""}`);
+
+  // strong exact/substring
+  if (clubName === qRaw) return 90;
+  if (clubName.includes(qRaw)) return 65;
+  if (clubSlug && (clubSlug === qRaw || clubSlug.includes(qRaw))) return 55;
+  if (clubText.includes(qRaw)) return 35;
+
+  const qTokens = tokenize(qRaw);
+  const textTokens = tokenize(clubText);
+  const textSet = new Set(textTokens);
+
   let overlap = 0;
-  for (const t of qTokens) if (nameTokens.has(t)) overlap++;
-  if (overlap >= 2) return 14;
-  if (overlap === 1) return 6;
+  for (const t of qTokens) if (textSet.has(t)) overlap++;
 
-  return 0;
+  // prefix overlap (ski → skiing)
+  let prefixHits = 0;
+  for (const t of qTokens) {
+    if (t.length < 3) continue;
+    if (textTokens.some(x => x.startsWith(t) || t.startsWith(x))) prefixHits++;
+  }
+
+  let score = overlap * 10 + prefixHits * 6;
+
+  // fuzzy only for short queries
+  if (qTokens.length <= 4) {
+    const simName = similarity(qRaw, clubName);
+    const simSlug = clubSlug ? similarity(qRaw, clubSlug.replace(/-/g, " ")) : 0;
+    const sim = Math.max(simName, simSlug);
+
+    if (sim >= 0.88) score += 45;
+    else if (sim >= 0.80) score += 28;
+    else if (sim >= 0.72) score += 16;
+  }
+
+  return score;
 }
 
-function scoreClub(club, userTags, userVibes, userMessage) {
+function scoreClub(club, userTags, userVibes, userMessage, mode) {
   let score = 0;
 
   const clubTags = Array.isArray(club.tags) ? club.tags : [];
   const clubVibes = Array.isArray(club.vibe) ? club.vibe : [];
   const text = normalize(`${club.name || ""} ${club.description || ""}`);
 
-  score += nameMatchBoost(userMessage, club.name);
+  // SEARCH MODE: name/text is king
+  if (mode === "search") {
+    score += nameAndTextBoost(userMessage, club);
 
-  // tag overlap: strong
-  for (const t of userTags) {
-    if (clubTags.includes(t)) score += 4;
-    else {
-      const token = t.replace("-", " ");
-      if (token && text.includes(token)) score += 1;
+    // small boost if query implies sport/outdoors etc via tags
+    for (const t of userTags) {
+      if (clubTags.includes(t)) score += 3;
+      else if (t && text.includes(t.replace("-", " "))) score += 1;
     }
-  }
+  } else {
+    // RECOMMEND MODE: tags/vibes matter a lot
+    score += nameAndTextBoost(userMessage, club) * 0.4;
 
-  // vibe overlap: medium
-  for (const v of userVibes) if (clubVibes.includes(v)) score += 2;
+    for (const t of userTags) {
+      if (clubTags.includes(t)) score += 5;
+      else if (t && text.includes(t.replace("-", " "))) score += 1;
+    }
+
+    for (const v of userVibes) if (clubVibes.includes(v)) score += 3;
+  }
 
   // small boosts
   if (club.links?.instagram) score += 1;
@@ -251,77 +572,146 @@ function scoreClub(club, userTags, userVibes, userMessage) {
   return score;
 }
 
+// ==================== ROUTE ====================
+
 export async function POST(req) {
   try {
     const body = await req.json().catch(() => ({}));
     const message = body?.message || "";
 
-    const msgNorm = normalize(message);
-    const looksLikeDirectSearch =
-        msgNorm.split(" ").length <= 4 && !msgNorm.includes("i like") && !msgNorm.includes("interested");
+    const directSearch = isLikelyDirectSearch(message);
 
-    // --- Profile: Gemini if possible, otherwise fallback
-    let mode = "fallback";
-    let userProfile = fallbackUserProfile(message);
+    // profile: Gemini if possible, else fallback
+    let modeLLM = "fallback";
+    // ✅ Keep default behavior ALWAYS (you asked for a default)
+    let userProfile = fallbackUserProfile(message, { allowDefault: true });
 
-    if (process.env.GEMINI_API_KEY) {
+    // Only call Gemini when it's not a direct search
+    if (process.env.GEMINI_API_KEY && !directSearch) {
       try {
         userProfile = await tryGemini(message);
-        mode = "gemini";
+        modeLLM = "gemini";
       } catch {
-        mode = "fallback";
+        modeLLM = "fallback";
       }
     }
 
-    const userTags = looksLikeDirectSearch
-        ? (userProfile.tags || []) // keep as-is
-        : expandTags(userProfile.tags || []);
-    const userVibes = (userProfile.vibe || []).filter(v => APPROVED_VIBES.includes(v)).slice(0, 3);
+    // tags/vibes
+    const userTags = directSearch
+      ? (userProfile.tags || [])      // don’t over-expand for name search
+      : expandTags(userProfile.tags || []);
 
-    // --- Mongo
+    const userVibes = (userProfile.vibe || [])
+      .filter(v => APPROVED_VIBES.includes(v))
+      .slice(0, 3);
+
+    // mongo
     const client = await clientPromise;
     const dbName = process.env.MONGODB_DB;
+    if (!dbName) {
+      return Response.json({ ok: false, error: "Missing env var MONGODB_DB" }, { status: 500 });
+    }
     const db = client.db(dbName);
 
-    // IMPORTANT: do NOT pre-filter too hard — pull a broader set, then score locally.
-    // This prevents empty recommendations when tags don’t overlap perfectly.
-    const candidates = await db.collection("clubs").find({}).limit(1200).toArray();
+    // candidates
+    const kind = directSearch ? "search" : "recommend";
+    const candidates = directSearch
+      ? await fetchSearchCandidates(db, message, 150)
+      : await fetchRecommendationCandidates(db, 1500);
 
-    // If DB is wrong / empty, surface that clearly
+    // If DB empty: return empty + clear warning
     if (!candidates.length) {
+        const defaults = await fetchDefaultDiverseClubs(db, 6);
+
+        const recommendations = defaults.map((c, idx) => ({
+            name: c.name,
+            slug: c.slug,
+            category: c.category?.title || c.category || "",
+            description: (c.description || "").slice(0, 240),
+            tags: toStringArray(c.tags),
+            vibe: toStringArray(c.vibe),
+            links: c.links || {},
+            imageUrl: c.imageUrl || null,
+            joinUrl: getJoinUrl(c),
+            score: 0,
+            rank: idx + 1,
+            reason: "default",
+        }));
+
+        return Response.json({
+            ok: true,
+            mode: modeLLM,
+            kind,
+            user: { tags: userTags, vibe: userVibes },
+            recommendations,
+            fallback: "default",
+            note: "I couldn’t access the full club list right now — here are some popular picks across different interests.",
+        });
+        }
+
+    // rank
+    const ranked = candidates
+      .map(c => ({
+        c,
+        score: scoreClub(c, userTags, userVibes, message, kind),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    // take top matches
+    let top = ranked.filter(x => x.score > 0).slice(0, 6);
+
+    // ✅ NEW: if matches are weak or empty, fallback to trending
+    if (!top.length || isWeakMatch(top, kind)) {
+      const trending = await fetchTrendingClubs(db, 6);
+
+      const recommendations = trending.map((c, idx) => ({
+        name: c.name,
+        slug: c.slug,
+        category: c.category?.title || c.category || "",
+        description: (c.description || "").slice(0, 240),
+        tags: c.tags || [],
+        vibe: c.vibe || [],
+        links: c.links || {},
+        imageUrl: c.imageUrl || null,
+        joinUrl: getJoinUrl(c),
+        score: 0,
+        reason: "trending",
+        rank: idx + 1,
+      }));
+
       return Response.json({
         ok: true,
-        mode,
+        mode: modeLLM,
+        kind,
         user: { tags: userTags, vibe: userVibes },
-        recommendations: [],
-        warning: `No clubs found in Mongo. Check DB=${dbName} collection=clubs.`
+        recommendations,
+        fallback: "trending",
+        note: "No strong matches found; showing trending clubs."
       });
     }
 
-    // --- rank
-    const ranked = candidates
-        .map(c => ({ c, score: scoreClub(c, userTags, userVibes, message) }))
-        .sort((a, b) => b.score - a.score);
-
-    // pick top 5 with score>0 if possible, else just top 5
-    let top = ranked.filter(x => x.score > 0).slice(0, 6);
+    // If top less than 6, fill with next best
     if (top.length < 6) top = ranked.slice(0, 6);
 
-    const recommendations = top.map(({ c, score }) => ({
+    const recommendations = top.map(({ c, score }, idx) => ({
       name: c.name,
       slug: c.slug,
       category: c.category?.title || c.category || "",
-      description: (c.description || "").slice(0, 220),
+      description: (c.description || "").slice(0, 240),
       tags: c.tags || [],
       vibe: c.vibe || [],
       links: c.links || {},
       imageUrl: c.imageUrl || null,
-      score
+      joinUrl: getJoinUrl(c),
+      score: Math.round(score * 10) / 10,
+      rank: idx + 1,
+      reason: "match",
     }));
 
     return Response.json({
       ok: true,
-      mode,
+      mode: modeLLM,
+      kind,
       user: { tags: userTags, vibe: userVibes },
       recommendations
     });
