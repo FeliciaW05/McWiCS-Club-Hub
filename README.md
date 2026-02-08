@@ -49,7 +49,9 @@ Backend
 
 1. Install dependencies
 
+```
 npm install
+```
 
 2. Environment variables
 
@@ -63,7 +65,9 @@ GEMINI_API_KEY=<VALIDAPIKEY>
 
 3. Run the dev server
 
+```
 npm run dev
+```
 
 Visit:
 http://localhost:3000
