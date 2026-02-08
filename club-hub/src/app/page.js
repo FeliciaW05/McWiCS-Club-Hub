@@ -36,23 +36,33 @@ const Navbar = () => (
 );
 
 // SEARCH BAR (now interactive)
-const HeroSearch = ({ value, onChange, onSubmit, loading }) => (
-  <div className="hero-search-container">
-    <div className="hero-search-box">
-      <textarea
-        placeholder="Tell us a bit about yourself, your interests, and we'll find the perfect club!"
-        rows="2"
-        className="hero-search-input resize-none py-3 leading-tight flex items-center"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={loading}
-      />
-      <button className="hero-search-btn" onClick={onSubmit} disabled={loading}>
-        {loading ? "Finding..." : "Find Club"}
-      </button>
+const HeroSearch = ({ value, onChange, onSubmit, loading }) => {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault(); // stop newline
+      if (!loading) onSubmit();
+    }
+  };
+
+  return (
+    <div className="hero-search-container">
+      <div className="hero-search-box">
+        <textarea
+          placeholder="Tell us a bit about yourself, your interests, and we'll find the perfect club!"
+          rows="2"
+          className="hero-search-input resize-none py-3 leading-tight flex items-center"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={loading}
+        />
+        <button className="hero-search-btn" onClick={onSubmit} disabled={loading}>
+          {loading ? "Finding..." : "Find Club"}
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const IconGlobe = (props) => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
@@ -281,12 +291,6 @@ export default function Home() {
             loading={loading}
             
           />
-          <a
-            href="#recommendations"
-            className="rounded-full bg-white/90 px-5 py-2 text-sm font-semibold text-club-dark hover:bg-white transition"
-          >
-            Jump to matches ↓
-          </a>
 
           {/* status line under the search box */}
           <div className="w-full max-w-3xl">
@@ -310,6 +314,12 @@ export default function Home() {
                 <div className="opacity-80">
                   <span className="font-semibold">Scroll down to see recommendations!</span>{" "}
                 </div>
+                <a
+                  href="#recommendations"
+                  className="mt-3 inline-block rounded-full bg-gray-100 px-5 py-2 text-sm font-semibold text-club-dark hover:bg-white transition"
+                >
+                  Jump to matches ↓
+                </a>
               </div>
             )}
           </div>
