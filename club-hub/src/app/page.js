@@ -65,7 +65,7 @@ const HeroSearch = ({ value, onChange, onSubmit, loading }) => {
       <div className="hero-search-box">
         <textarea
           placeholder="Tell us a bit about yourself, your interests..."
-          rows="2"
+          rows="1"
           className="hero-search-input resize-none py-3 leading-tight"
           value={value}
           onChange={(e) => onChange(e.target.value)}
