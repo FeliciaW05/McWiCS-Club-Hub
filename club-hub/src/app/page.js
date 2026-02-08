@@ -110,21 +110,47 @@ const IconMail = (props) => (
   </svg>
 );
 
+function asArray(x) {
+  if (Array.isArray(x)) return x;
+  if (typeof x === "string") {
+    // support "tag1, tag2" or "tag1 tag2"
+    return x.split(/[,|\s]+/).map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
 
 function RecommendationCard({ r }) {
+  const tags = asArray(r?.tags);
+  const vibes = asArray(r?.vibe);
+
+  function openExternal(e, url) {
+    e.preventDefault();    // prevent Link navigation
+    e.stopPropagation();   // prevent bubbling to Link
+    window.open(url, "_blank", "noreferrer");
+  }
+
+  function openMail(e, url) {
+    e.preventDefault();
+    e.stopPropagation();
+    // mailto should open in same tab / mail client
+    window.location.href = url;
+  }
+
   return (
     <div className="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-lg font-bold text-club-dark">{r.name}</div>
-          <div className="text-sm opacity-70">{r.category}</div>
+          <div className="text-lg font-bold text-club-dark">{r?.name}</div>
+          <div className="text-sm opacity-70">{r?.category}</div>
         </div>
-        {typeof r.score === "number" && (
-          <div className="text-xs opacity-60">score: {r.score.toFixed?.(1) ?? r.score}</div>
+        {typeof r?.score === "number" && (
+          <div className="text-xs opacity-60">
+            score: {r.score.toFixed?.(1) ?? r.score}
+          </div>
         )}
       </div>
 
-      {r.description && (
+      {r?.description && (
         <p className="mt-2 text-sm text-club-dark/80">
           {r.description}
           {r.description.length >= 220 ? "..." : ""}
@@ -133,17 +159,18 @@ function RecommendationCard({ r }) {
 
       {/* tags + vibe */}
       <div className="mt-3 flex flex-wrap gap-2">
-        {(r.tags || []).slice(0, 10).map((t) => (
+        {tags.slice(0, 10).map((t, i) => (
           <span
-            key={t}
+            key={`${r?.slug || r?.name || "club"}-tag-${t}-${i}`}
             className="rounded-full bg-black/5 px-3 py-1 text-xs text-club-dark"
           >
             #{t}
           </span>
         ))}
-        {(r.vibe || []).slice(0, 5).map((v) => (
+
+        {vibes.slice(0, 5).map((v, i) => (
           <span
-            key={v}
+            key={`${r?.slug || r?.name || "club"}-vibe-${v}-${i}`}
             className="rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-900"
           >
             {v}
@@ -151,68 +178,63 @@ function RecommendationCard({ r }) {
         ))}
       </div>
 
-      {/* links */}
+      {/* links (NO <a> tags inside a Link-wrapped card) */}
       <div className="mt-4 flex flex-wrap gap-2">
-        {r.links?.website && (
-          <a
+        {r?.links?.website && (
+          <button
+            type="button"
             className="inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-2 text-sm text-club-dark hover:bg-black/10 transition"
-            href={r.links.website}
-            target="_blank"
-            rel="noreferrer"
+            onClick={(e) => openExternal(e, r.links.website)}
             aria-label="Website"
             title="Website"
           >
             <IconGlobe />
             <span className="hidden sm:inline">Website</span>
-          </a>
+          </button>
         )}
 
-        {r.links?.facebook && (
-          <a
+        {r?.links?.facebook && (
+          <button
+            type="button"
             className="inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-2 text-sm text-club-dark hover:bg-black/10 transition"
-            href={r.links.facebook}
-            target="_blank"
-            rel="noreferrer"
+            onClick={(e) => openExternal(e, r.links.facebook)}
             aria-label="Facebook"
             title="Facebook"
           >
             <IconFacebook />
             <span className="hidden sm:inline">Facebook</span>
-          </a>
+          </button>
         )}
 
-        {r.links?.instagram && (
-          <a
+        {r?.links?.instagram && (
+          <button
+            type="button"
             className="inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-2 text-sm text-club-dark hover:bg-black/10 transition"
-            href={r.links.instagram}
-            target="_blank"
-            rel="noreferrer"
+            onClick={(e) => openExternal(e, r.links.instagram)}
             aria-label="Instagram"
             title="Instagram"
           >
             <IconInstagram />
             <span className="hidden sm:inline">Instagram</span>
-          </a>
+          </button>
         )}
 
-        {r.links?.email && (
-          <a
+        {r?.links?.email && (
+          <button
+            type="button"
             className="inline-flex items-center gap-2 rounded-full bg-black/5 px-3 py-2 text-sm text-club-dark hover:bg-black/10 transition"
-            href={r.links.email}
-            target="_blank"
-            rel="noreferrer"
+            onClick={(e) => openMail(e, r.links.email)}
             aria-label="Email"
             title="Email"
           >
             <IconMail />
             <span className="hidden sm:inline">Email</span>
-          </a>
+          </button>
         )}
       </div>
     </div>
   );
 }
-
 // --- MAIN PAGE COMPONENT ---
 
 export default function Home() {
@@ -417,10 +439,10 @@ export default function Home() {
 
           {recommendations.length > 0 && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {recommendations.map((r, idx) => (
+              {recommendations.slice(0, 6).map((r, idx) => (
                 <Link
-                  key={`${r.slug || r.name}-${idx}`} 
-                  href={`/club/${r.slug || r.name}`} 
+                  key={`${r.slug || r.name}-${idx}`}
+                  href={`/club/${r.slug || r.name}`}
                   className="block hover:opacity-95 transition-opacity"
                 >
                   <RecommendationCard r={r} />
