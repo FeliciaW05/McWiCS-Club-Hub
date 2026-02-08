@@ -39,6 +39,9 @@ const KEYWORDS = [
   ["yoga", ["yoga","wellness","mindfulness"]],
   ["sport", ["sports"]],
   ["fitness", ["fitness"]],
+  ["dragon boat", ["sports","fitness","community"]],
+  ["dragonboat", ["sports","fitness","community"]],
+  ["paddl", ["sports","fitness","outdoors"]],
 
   // tech
   ["ai", ["ai","tech"]],
@@ -185,19 +188,54 @@ ${message}
 
   return { tags, vibe };
 }
+function tokenize(s) {
+  return normalize(s)
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
 
-function scoreClub(club, userTags, userVibes) {
+function allTokensInText(tokens, text) {
+  return tokens.every(t => text.includes(t));
+}
+
+function nameMatchBoost(userMsg, clubName) {
+  const q = normalize(userMsg);
+  const name = normalize(clubName);
+
+  if (!q || q.length < 2 || !name) return 0;
+
+  // exact or near-exact
+  if (name === q) return 40;
+  if (name.includes(q)) return 30;
+
+  // token-based match (e.g., "dragon boat" in "Dragon Boat Z")
+  const qTokens = tokenize(q);
+  if (qTokens.length >= 2 && allTokensInText(qTokens, name)) return 24;
+
+  // partial token overlap
+  const nameTokens = new Set(tokenize(name));
+  let overlap = 0;
+  for (const t of qTokens) if (nameTokens.has(t)) overlap++;
+  if (overlap >= 2) return 14;
+  if (overlap === 1) return 6;
+
+  return 0;
+}
+
+function scoreClub(club, userTags, userVibes, userMessage) {
   let score = 0;
 
   const clubTags = Array.isArray(club.tags) ? club.tags : [];
   const clubVibes = Array.isArray(club.vibe) ? club.vibe : [];
   const text = normalize(`${club.name || ""} ${club.description || ""}`);
 
+  score += nameMatchBoost(userMessage, club.name);
+
   // tag overlap: strong
   for (const t of userTags) {
     if (clubTags.includes(t)) score += 4;
     else {
-      // weak text fallback so it still works even if tags are imperfect
       const token = t.replace("-", " ");
       if (token && text.includes(token)) score += 1;
     }
@@ -218,6 +256,10 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const message = body?.message || "";
 
+    const msgNorm = normalize(message);
+    const looksLikeDirectSearch =
+        msgNorm.split(" ").length <= 4 && !msgNorm.includes("i like") && !msgNorm.includes("interested");
+
     // --- Profile: Gemini if possible, otherwise fallback
     let mode = "fallback";
     let userProfile = fallbackUserProfile(message);
@@ -231,8 +273,9 @@ export async function POST(req) {
       }
     }
 
-    // expand tags so query/score won’t be too strict
-    const userTags = expandTags(userProfile.tags || []);
+    const userTags = looksLikeDirectSearch
+        ? (userProfile.tags || []) // keep as-is
+        : expandTags(userProfile.tags || []);
     const userVibes = (userProfile.vibe || []).filter(v => APPROVED_VIBES.includes(v)).slice(0, 3);
 
     // --- Mongo
@@ -257,12 +300,12 @@ export async function POST(req) {
 
     // --- rank
     const ranked = candidates
-      .map(c => ({ c, score: scoreClub(c, userTags, userVibes) }))
-      .sort((a, b) => b.score - a.score);
+        .map(c => ({ c, score: scoreClub(c, userTags, userVibes, message) }))
+        .sort((a, b) => b.score - a.score);
 
     // pick top 5 with score>0 if possible, else just top 5
-    let top = ranked.filter(x => x.score > 0).slice(0, 5);
-    if (top.length < 5) top = ranked.slice(0, 5);
+    let top = ranked.filter(x => x.score > 0).slice(0, 6);
+    if (top.length < 6) top = ranked.slice(0, 6);
 
     const recommendations = top.map(({ c, score }) => ({
       name: c.name,
