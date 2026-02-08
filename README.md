@@ -45,7 +45,7 @@ Backend
 - Optional Google Gemini API integration
 
 
-🚀 Getting Started
+## Getting Started
 
 1. Install dependencies
 
