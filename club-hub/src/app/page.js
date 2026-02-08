@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 // --- SUB-COMPONENTS ---
@@ -36,21 +36,40 @@ const Navbar = () => (
 );
 
 // SEARCH BAR (now interactive)
+
 const HeroSearch = ({ value, onChange, onSubmit, loading }) => {
+  
+  const fullText = "Hello! I’m your attentive club assistant. Tell me your interests and I’ll find your perfect match!";
+  const [displayText, setDisplayText] = useState("");
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault(); // stop newline
       if (!loading) onSubmit();
     }
   };
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayText(fullText.slice(0, i));
+      i++;
+      if (i > fullText.length) clearInterval(interval);
+    }, 45);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="hero-search-container">
+      
+      {/* Typing Line */}
+      <div className="mb-3 text-white/90 text-lg font-medium drop-shadow min-h-[28px]">
+        {displayText}
+      </div>
+
       <div className="hero-search-box">
         <textarea
-          placeholder="Tell us a bit about yourself, your interests, and we'll find the perfect club!"
+          placeholder="Tell us a bit about yourself, your interests..."
           rows="2"
-          className="hero-search-input resize-none py-3 leading-tight flex items-center"
+          className="hero-search-input resize-none py-3 leading-tight"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
