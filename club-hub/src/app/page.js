@@ -228,7 +228,6 @@ export default function Home() {
     { title: "Music Band", color: "bg-club-light" },
   ];
 
-  // ====== NEW STATE ======
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
