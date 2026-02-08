@@ -31,7 +31,6 @@ const Navbar = () => (
         Calendar
       </Link>
     </div>
-<<<<<<< HEAD
 <Link href="/signup">
   <button className="nav-signup-btn">
     sign up your club
@@ -39,9 +38,6 @@ const Navbar = () => (
 </Link>
 
 
-=======
-    <button className="nav-signup-btn">sign up your club</button>
->>>>>>> origin/main
   </nav>
 );
 
