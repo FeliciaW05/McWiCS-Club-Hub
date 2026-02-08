@@ -5,14 +5,30 @@ import Link from "next/link";
 
 // --- SUB-COMPONENTS ---
 
-const ClubCard = ({ title, color }) => (
-  <div className={`club-card ${color}`}>
-    <div className="text-4xl mb-2">🎈</div>
-    <span className="club-card-title">{title}</span>
-    <div className="w-full h-2 bg-club-dark/10 mt-4 rounded-full"></div>
-    <div className="w-2/3 h-2 bg-club-dark/10 mt-2 rounded-full"></div>
-  </div>
-);
+const ClubCard = ({ title, imageUrl }) => {
+  const bg = imageUrl
+    ? { backgroundImage: `url(${imageUrl})` }
+    : {
+        background:
+          "linear-gradient(135deg, #c7d2fe, #bae6fd, #bbf7d0)",
+      };
+
+  return (
+    <div
+      className="club-card relative overflow-hidden text-white"
+      style={{
+        ...bg,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="relative z-10 text-lg font-semibold">
+        {title}
+      </div>
+    </div>
+  );
+};
 
 const Navbar = () => (
   <nav className="nav-container">
@@ -117,6 +133,23 @@ function asArray(x) {
     return x.split(/[,|\s]+/).map(s => s.trim()).filter(Boolean);
   }
   return [];
+}
+
+function getClubDisplayName(club) {
+  if (!club) return "Student Club";
+
+  return (
+    club.name ||
+    club.title ||
+    club.clubName ||
+    club.name_en ||
+    (typeof club.slug === "string"
+      ? club.slug
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, c => c.toUpperCase())
+      : null) ||
+    "Student Club"
+  );
 }
 
 function RecommendationCard({ r }) {
@@ -238,13 +271,30 @@ function RecommendationCard({ r }) {
 // --- MAIN PAGE COMPONENT ---
 
 export default function Home() {
+  const [posterClubs, setPosterClubs] = useState([]);
+  useEffect(() => {
+    async function loadPosters() {
+      try {
+        const res = await fetch("/api/clubs/posters");
+        const data = await res.json();
+        if (data?.ok && Array.isArray(data.clubs)) {
+          setPosterClubs(data.clubs);
+        }
+      } catch {
+      }
+    }
+    loadPosters();
+  }, []);
   const clubs = [
-    { title: "Science Club", color: "bg-white" },
-    { title: "Art Society", color: "bg-club-cream" },
-    { title: "Robotics", color: "bg-club-light" },
-    { title: "Debate Team", color: "bg-club-white" },
-    { title: "Chess Club", color: "bg-club-cream" },
-    { title: "Music Band", color: "bg-club-light" },
+    { title: "Cycling @ McGill", color: "bg-white" },
+    { title: "McGill Karateka", color: "bg-club-cream" },
+    { title: "Lettuce Club", color: "bg-club-light" },
+    { title: "Hack4Impact", color: "bg-club-white" },
+    { title: "McGill Wine Society", color: "bg-club-cream" },
+    { title: "Effusion A Cappella", color: "bg-club-light" },
+    { title: "McGill Arts Collective", color: "bg-club-light" },
+    { title: "Salseros McGill", color: "bg-club-light" },
+    { title: "Lotus Dance Initative", color: "bg-club-light" },
   ];
 
   const [message, setMessage] = useState("");
