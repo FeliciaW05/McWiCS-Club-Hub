@@ -26,7 +26,7 @@ const Navbar = () => (
       </Link>
     </div>
     <Link href="/signup">
-  <button className="nav-signup-btn">sign up your club</button>
+  <button className="nav-signup-btn">Join the Hub</button>
 </Link>
 
   </nav>
@@ -348,7 +348,7 @@ export default function Home() {
           <div className="space-y-10 pt-10 md:pt-20 pl-8">
             <div className="space-y-6">
               <h2 className="info-heading mt-0 text-5xl font-bold text-club-blue">
-                What is Club Hub?
+                What is The CL•HUB?
               </h2>
 
               <div className="info-text-group space-y-4 text-xl text-club-dark/80">

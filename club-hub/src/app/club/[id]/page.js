@@ -19,7 +19,7 @@ const Navbar = () => (
       </Link>
     </div>
     <Link href="/signup">
-  <button className="nav-signup-btn">sign up your club</button>
+  <button className="nav-signup-btn">Join the Hub</button>
 </Link>
 
   </nav>
@@ -169,13 +169,17 @@ export default async function ClubDetails({ params }) {
             </div>
 
             <div className="flex-grow pb-2 md:pb-8 text-center md:text-left">
-              <h1 className="text-4xl md:text-6xl font-black text-club-dark drop-shadow-sm mb-2">
+              <h1 className="inline-block bg-white px-6 py-3 rounded-2xl text-4xl md:text-6xl font-black text-club-dark shadow-lg mb-2">
                 {club.name}
               </h1>
+              <div className="flex flex-wrap gap-2 mt-3 justify-center md:justify-start">
+                {tags.length ? (
+                tags.map((t, i) => <Tag key={`${t}-${i}`} text={t} />)
+              ) : (
+              <Tag text={vibeText} />
+              )}
+              </div>
 
-              <p className="text-xl font-bold text-club-blue opacity-90">
-                {vibeText}
-              </p>
 
               {club.category?.title && (
                 <p className="mt-2 text-sm font-bold text-club-dark/60">

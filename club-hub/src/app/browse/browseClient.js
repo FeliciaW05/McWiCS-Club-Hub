@@ -17,7 +17,7 @@ const Navbar = () => (
       </Link>
     </div>
     <Link href="/signup">
-  <button className="nav-signup-btn">sign up your club</button>
+  <button className="nav-signup-btn">Join the Hub</button>
 </Link>
 
   </nav>
