@@ -32,95 +32,97 @@ export default function Signup() {
       {/* Centered form container */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
 
-        <h1 className="text-5xl font-bold mb-6 text-club-dark">
-            Join the CL•HUB
-        </h1>
+        {/* White card containing header and form */}
+        <div className="bg-white/95 p-6 rounded-lg shadow-lg w-full max-w-md flex flex-col gap-4">
 
+          <h1 className="text-5xl font-bold mb-4 text-club-dark">
+            Sign Up Your Club
+          </h1>
 
+          <form className="flex flex-col gap-4">
 
-        <form className="flex flex-col gap-4 w-full max-w-md bg-white/90 p-6 rounded-lg shadow-lg">
+            <input
+              type="text"
+              placeholder="Club Name"
+              className="p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700"
+            />
+            <input
+              type="text"
+              placeholder="Club Description"
+              className="p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700"
+            />
+            <input
+              type="email"
+              placeholder="Contact Email"
+              className="p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700"
+            />
 
-          <input
-            type="text"
-            placeholder="Club Name"
-            className="p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700"
-          />
-          <input
-            type="text"
-            placeholder="Club Description"
-            className="p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700"
-          />
-          <input
-            type="email"
-            placeholder="Contact Email"
-            className="p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700"
-          />
+            {/* Contacts Section */}
+            <div className="flex flex-col gap-2">
+              {contacts.map((contact, idx) => (
+                <div key={idx} className="flex items-center gap-2">
 
-          {/* Contacts Section */}
-          <div className="flex flex-col gap-2">
-            {contacts.map((contact, idx) => (
-              <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={contact.type}
+                    onChange={(e) => {
+                      const newContacts = [...contacts];
+                      newContacts[idx].type = e.target.value;
+                      setContacts(newContacts);
+                    }}
+                    className="p-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700 w-28 flex-shrink-0 text-sm"
+                  >
+                    <option value="">Type</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Website">Website</option>
+                  </select>
 
-                <select
-                  value={contact.type}
-                  onChange={(e) => {
-                    const newContacts = [...contacts];
-                    newContacts[idx].type = e.target.value;
-                    setContacts(newContacts);
-                  }}
-                  className="p-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700 w-28 flex-shrink-0 text-sm"
-                >
-                  <option value="">Type</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="Website">Website</option>
-                </select>
+                  <input
+                    type="text"
+                    placeholder="URL or handle"
+                    value={contact.url}
+                    onChange={(e) => {
+                      const newContacts = [...contacts];
+                      newContacts[idx].url = e.target.value;
+                      setContacts(newContacts);
+                    }}
+                    className="flex-1 p-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm"
+                  />
 
-                <input
-                  type="text"
-                  placeholder="URL or handle"
-                  value={contact.url}
-                  onChange={(e) => {
-                    const newContacts = [...contacts];
-                    newContacts[idx].url = e.target.value;
-                    setContacts(newContacts);
-                  }}
-                  className="flex-1 p-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm"
-                />
+                  <button
+                    type="button"
+                    onClick={() => removeContact(idx)}
+                    className="flex items-center justify-center w-7 h-7 bg-gray-100 rounded border border-gray-300 hover:bg-red-100 transition-colors shrink-0"
+                    title="Remove"
+                  >
+                    <FaTrash className="text-gray-600 hover:text-red-500 text-[12px]" />
+                  </button>
+                </div>
+              ))}
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => removeContact(idx)}
-                  className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded border border-gray-300 hover:bg-red-100 transition-colors"
-                  title="Remove"
-                >
-                  <FaTrash className="text-gray-600 hover:text-red-500 text-sm" />
-                </button>
-              </div>
-            ))}
-          </div>
+            {/* Add Contact button */}
+            <button
+              type="button"
+              onClick={addContact}
+              disabled={contacts.length >= 3}
+              className={`mt-2 p-2 font-bold rounded text-white ${
+                contacts.length >= 3
+                  ? "bg-purple-400 cursor-not-allowed"
+                  : "bg-purple-700 hover:bg-purple-800"
+              }`}
+            >
+              + Add Contact
+            </button>
 
-          {/* Add Contact button */}
-          <button
-            type="button"
-            onClick={addContact}
-            disabled={contacts.length >= 3}
-            className={`mt-2 p-2 font-bold rounded text-white ${
-              contacts.length >= 3
-                ? "bg-purple-400 cursor-not-allowed"
-                : "bg-purple-700 hover:bg-purple-800"
-            }`}
-          >
-            + Add Contact
-          </button>
-
-          <button
-            type="submit"
-            className="mt-4 p-3 bg-club-orange text-white font-bold rounded hover:bg-orange-600"
-          >
-            Submit
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="mt-4 p-3 bg-club-orange text-white font-bold rounded hover:bg-orange-600"
+            >
+              Submit
+            </button>
+          </form>
+        </div>
 
         {/* Back to home link */}
         <Link
