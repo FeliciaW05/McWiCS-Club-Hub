@@ -144,7 +144,7 @@ export default async function ClubDetails({ params }) {
       <div className="relative pt-20">
         <div className="h-64 md:h-80 w-full overflow-hidden relative">
           <img
-            src="https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1600&q=80"
+            src="/background_mcgill.png"
             alt="Banner"
             className="w-full h-full object-cover"
           />
